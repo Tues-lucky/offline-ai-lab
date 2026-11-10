@@ -4,6 +4,12 @@ Newest first. A few lines a day: what I tried, what happened, what I learned, wh
 
 ---
 
+## 2026-11-10
+- **Tried:** Uploaded the marked scan (`_checked.md`) and added a prompt rule: "If text is marked [UNREADABLE], do not guess; say which clause could not be read." Asked about clause 7.2 (twice), the rent-free management fee, and the handover date.
+- **Result:** 7.2 run 1: the model received the [UNREADABLE] marker but still invented "re-let the property" and a quote that is not in the source, then said the key point was "clearly stated". 7.2 run 2: retrieval returned a heading-only chunk instead of section 7, so the model said 7.2 did not exist. Management fee: correct, quoted surviving text from 3.2. Handover date: both dates found and the conflict flagged (the new rule did not break normal answers).
+- **Learned:** A prompt rule is a request, not a guarantee. Leftover fragments next to the marker ("...compensationfor such termination") gave the model enough to fill the gap. Docling Markdown also creates tiny heading-only chunks that can outrank the real clause.
+- **Next:** (1) Mark the whole sentence as unreadable, not just the garbled span. (2) Add a filter that appends a warning whenever a retrieved chunk contains [UNREADABLE], whatever the model says. (3) Keep headings attached to their body text when chunking.
+
 ## 2026-11-09
 - **Tried:** Script to detect garbled OCR spans in Docling output and replace them with `[UNREADABLE: clause, check original page]`.
 - **Result:** Found all 10 garbled spans in the scanned lease, with the right clause numbers (inferred from the previous clause when OCR lost the number).
