@@ -5,7 +5,8 @@ Finds garbled OCR spans, replaces them with an [UNREADABLE: ...] marker so the
 model has nothing to "fill in", and writes a review list a person can complete.
 
 Usage:
-    python3 ocr_check.py input.md
+    python3 ocr_check.py input.md            # mark the whole sentence (default, safer)
+    python3 ocr_check.py input.md --span     # mark only the garbled words
 
 Outputs (next to the input):
     input_checked.md   garbled spans replaced with [UNREADABLE: ...]
@@ -32,6 +33,10 @@ LIST_RE = re.compile(r"^\s*(?:[-*]|\d+\.)\s")                          # "- " or
 
 MIN_JUNK = 4   # this many suspicious words close together = one garbled span
 MAX_GAP = 2    # allow up to this many normal words between suspicious ones
+
+PREFIX_RE = re.compile(r"^(?:[-*]|\d+\.|\d+\.\d+\.?)$")           # "-", "2.", "7.2" before the text
+NUMBER_RE = re.compile(r"^\(?\d+(?:\.\d+)*\.?\)?$")                 # "7.2", "(6)", "10.1."
+ABBREVIATIONS = {"cap.", "no.", "ltd.", "co.", "inc.", "e.g.", "i.e.", "hk$"}
 
 
 def is_junk(word: str) -> bool:
@@ -62,7 +67,41 @@ def find_junk_groups(words):
     return [(g[0], g[-1] + 1) for g in groups if len(g) >= MIN_JUNK]
 
 
-def main(path: str):
+def ends_sentence(token: str) -> bool:
+    """True if this word ends a sentence ("termination." but not "7.2" or "Cap.")."""
+    if not token.rstrip('"\')').endswith("."):
+        return False
+    if NUMBER_RE.match(token) or token.lower() in ABBREVIATIONS:
+        return False
+    return True
+
+
+def widen_to_sentence(words, start, end):
+    """Grow a garbled span to cover its whole sentence, keeping any clause number prefix."""
+    prefix = 0
+    while prefix < len(words) and PREFIX_RE.match(words[prefix]):
+        prefix += 1
+    s = start
+    while s > prefix and not ends_sentence(words[s - 1]) and words[s - 1] != "|":
+        s -= 1
+    e = end
+    while e < len(words) and not ends_sentence(words[e - 1]) and words[e] != "|":
+        e += 1   # "|" is a table cell border: stay inside the cell
+    return s, min(e, len(words))
+
+
+def merge(ranges):
+    """Merge overlapping (start, end) ranges."""
+    merged = []
+    for s, e in sorted(ranges):
+        if merged and s <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+        else:
+            merged.append((s, e))
+    return merged
+
+
+def main(path: str, sentence_mode: bool = True):
     src = Path(path)
     lines = src.read_text(encoding="utf-8").splitlines()
 
@@ -95,6 +134,8 @@ def main(path: str):
         # 3) Find and mark garbled spans
         words = line.split()
         groups = find_junk_groups(words)
+        if sentence_mode:
+            groups = merge(widen_to_sentence(words, s, e) for s, e in groups)
         for start, end in reversed(groups):   # replace from the end so indexes stay valid
             review.append({
                 "line": line_no,
@@ -102,7 +143,8 @@ def main(path: str):
                 "ocr_text": " ".join(words[start:end]),
                 "correct_text": "",            # filled in by a person
             })
-            words[start:end] = [f"[UNREADABLE: {label}, check original page]"]
+            ending = "." if sentence_mode and words[end - 1].endswith(".") else ""
+            words[start:end] = [f"[UNREADABLE: {label}, check original page]{ending}"]
         if groups:
             line = " ".join(words)
 
@@ -125,4 +167,4 @@ def main(path: str):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sentence_mode="--span" not in sys.argv[2:])
