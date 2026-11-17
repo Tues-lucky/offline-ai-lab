@@ -6,9 +6,9 @@ Newest first. A few lines a day: what I tried, what happened, what I learned, wh
 
 ## 2026-11-17
 - **Tried:** A filter that always shows a warning listing [UNREADABLE] clauses, whatever the model says. Edits after the answer finished (outlet) and status lines (overwritten by "Retrieved 1 source") did not show.
-- **Result:** Works by adding the warning to the first streamed chunk of the answer (`stream` hook). Shown on every answer for the scanned lease, including follow-up questions.
-- **Learned:** Fanless laptop throttles under sustained inference (thermal pressure Nominal → Moderate, 23.6 → 16.5 tok/s). "Using Entire Document" re-injects the file into the latest message, so the prompt cache misses on every follow-up (2,319 tokens re-read, 16.7 s).
-- **Next:** Check that no warning appears for a clean PDF. Put document context in the system message (RAG_SYSTEM_CONTEXT) and re-measure follow-up speed.
+- **Result:** Works by adding the warning to the first streamed chunk of the answer (`stream` hook). Shown on every answer for the scanned lease; no warning for the clean PDF. With the clean PDF the model cites the right clause (3.2); with the scan it cited the wrong one (2.2).
+- **Learned:** Fanless laptop throttles under sustained inference (thermal pressure Nominal → Moderate, 23.6 → 16.5 tok/s). "Using Entire Document" puts the file next to the latest message, so follow-up questions re-read the whole document (16.7 s). Setting `RAG_SYSTEM_CONTEXT=True` puts it in the system message: follow-up prompt time 16.7 s → 0.85 s, total 20 s → 3 s. With the MLX runner, `prompt_eval_count` does not drop when cached; use `prompt_eval_duration` or `prompt_token/s`.
+- **Next:** Fixed `WEBUI_SECRET_KEY` (recreating the container logged everyone out). Install script for a fresh Mac mini.
 
 ## 2026-11-11
 - **Tried:** Changed `ocr_check.py` to mark the **whole sentence** as unreadable, not just the garbled words (`--span` keeps the old behaviour). Clause numbers and table cell names are kept. Re-ran the clause 7.2 and management fee questions, first with knowledge-base search, then with the whole contract in context.
