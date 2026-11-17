@@ -4,6 +4,12 @@ Newest first. A few lines a day: what I tried, what happened, what I learned, wh
 
 ---
 
+## 2026-11-17 (evening): first Korean test
+- **Tried:** A fictitious Korean research-services contract (DOCX, 8 trap questions: VAT conflict, delivery date after contract end, court vs arbitration, one-sided termination, penalty maths, ambiguous IP clause).
+- **Result:** Korean DOCX extraction works (Docling, tables included). Deep model scored 6.5/8 (81%) and found all four conflicts. The fast model missed the VAT conflict between the body and a schedule title.
+- **Learned:** A rule telling the model to use tools it does not have (grep) made it miss the conflict; a tool-free rule ("check clauses, tables and schedules") fixed it. Our citation rule clashed with Open WebUI's built-in citation instruction: thinking took 2,799 tokens; after aligning the rule, 475. Spell out the exact format ([1]), or the model copies the wording literally ([id="1"]). Still fails one multi-step inference (deletion deadline should depend on the later delivery date) — not fixed by prompting.
+- **Next:** HWP/HWPX/PDF made by Hangul (same contract) to compare with DOCX. Automatic grading script. Try the 27B model on the multi-step question.
+
 ## 2026-11-17
 - **Tried:** A filter that always shows a warning listing [UNREADABLE] clauses, whatever the model says. Edits after the answer finished (outlet) and status lines (overwritten by "Retrieved 1 source") did not show.
 - **Result:** Works by adding the warning to the first streamed chunk of the answer (`stream` hook). Shown on every answer for the scanned lease; no warning for the clean PDF. With the clean PDF the model cites the right clause (3.2); with the scan it cited the wrong one (2.2).
